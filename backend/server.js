@@ -41,10 +41,10 @@ app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
+app.use(express.static(path.join(__dirname, '..')));
 
 // ============================================================
-// ROUTE RACINE — Page d'accueil
+// ROUTE RACINE
 // ============================================================
 app.get('/', (req, res) => {
   res.json({
@@ -53,7 +53,7 @@ app.get('/', (req, res) => {
     architecture: '20 couches d\'IA avec recherche images',
     status: 'online',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
+    uptime: Math.floor(process.uptime()),
     endpoints: {
       health: '/api/health',
       docs: '/api/docs',
@@ -66,13 +66,9 @@ app.get('/', (req, res) => {
       telegram: '/api/telegram/webhook',
       auth: '/api/auth/login'
     },
-    frontend: process.env.FRONTEND_URL || 'http://localhost:10000',
+    frontend: process.env.FRONTEND_URL || 'https://omaymey15-sys.github.io/Mini-ia',
     message: '🚀 Bienvenue sur l\'API Mini ChatGPT V5.0 !',
-    tip: 'Consultez /api/docs pour la documentation complète.',
-    quickStart: {
-      curl: 'curl -X POST ' + (process.env.FRONTEND_URL || 'http://localhost:10000') + '/api/chat -H "Content-Type: application/json" -d \'{"message":"Bonjour"}\'',
-      javascript: `fetch('${process.env.FRONTEND_URL || 'http://localhost:10000'}/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Bonjour' }) }).then(r => r.json()).then(console.log)`
-    }
+    tip: 'Consultez /api/docs pour la documentation complète.'
   });
 });
 
@@ -141,130 +137,30 @@ app.get('/api/docs', (req, res) => {
       chat: {
         method: 'POST',
         path: '/api/chat',
-        auth: 'API Key',
         description: 'Envoyer un message au chatbot (texte + images)',
         body: {
           message: 'string (required)',
           session_id: 'string (optional)',
           style: 'professional | academic | casual | technical',
-          image_search: 'auto | always | never',
-          language: 'fr | en'
-        },
-        example: `curl -X POST ${process.env.FRONTEND_URL || 'http://localhost:10000'}/api/chat \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: mcp_v5_YOUR_KEY" \\
-  -d '{"message":"Montre-moi des images de Paris","style":"professional"}'`
+          image_search: 'auto | always | never'
+        }
       },
       images: {
         method: 'GET',
         path: '/api/images/search?q=tour+eiffel&limit=6',
-        description: 'Rechercher des images',
-        params: {
-          q: 'string (required) - Requête de recherche',
-          limit: 'integer (optional) - Nombre max d\'images (défaut: 6)',
-          source: 'unsplash | wikipedia (optional)'
-        }
+        description: 'Rechercher des images'
       },
-      qa: {
-        method: 'GET',
-        path: '/api/qa',
-        description: 'Lister les questions/réponses'
-      },
-      qa_search: {
-        method: 'GET',
-        path: '/api/qa/search?q=recherche&limit=20',
-        description: 'Rechercher dans les Q/R'
-      },
-      knowledge: {
-        method: 'GET',
-        path: '/api/knowledge/search?q=motclé',
-        description: 'Rechercher dans la base de connaissances'
-      },
-      documents: {
-        method: 'POST',
-        path: '/api/documents/upload',
-        auth: 'JWT',
-        description: 'Uploader un PDF'
-      },
-      stats: {
-        method: 'GET',
-        path: '/api/stats',
-        description: 'Statistiques globales'
-      },
-      export: {
-        method: 'GET',
-        path: '/api/export',
-        auth: 'JWT',
-        description: 'Exporter toutes les données'
-      },
-      telegram: {
-        method: 'POST',
-        path: '/api/telegram/webhook',
-        description: 'Webhook Telegram'
-      },
+      qa: { method: 'GET', path: '/api/qa', description: 'Lister Q/R' },
+      qa_search: { method: 'GET', path: '/api/qa/search?q=', description: 'Rechercher Q/R' },
+      knowledge: { method: 'GET', path: '/api/knowledge/search?q=', description: 'Base connaissances' },
+      documents: { method: 'POST', path: '/api/documents/upload', description: 'Upload PDF' },
+      stats: { method: 'GET', path: '/api/stats', description: 'Statistiques' },
+      export: { method: 'GET', path: '/api/export', description: 'Export données' },
+      telegram: { method: 'POST', path: '/api/telegram/webhook', description: 'Webhook Telegram' },
       auth: {
         register: { method: 'POST', path: '/api/auth/register' },
-        login: { method: 'POST', path: '/api/auth/login' },
-        me: { method: 'GET', path: '/api/auth/me', auth: 'JWT' }
-      },
-      developer: {
-        dashboard: { method: 'GET', path: '/api/developer/dashboard', auth: 'JWT' },
-        keys: { method: 'POST', path: '/api/developer/keys', auth: 'JWT' },
-        plans: { method: 'GET', path: '/api/developer/plans' }
+        login: { method: 'POST', path: '/api/auth/login' }
       }
-    },
-    sdks: {
-      javascript: `
-const API_KEY = 'mcp_v5_YOUR_KEY';
-const API_URL = '${process.env.FRONTEND_URL || 'http://localhost:10000'}';
-
-async function chat(message, options = {}) {
-  const response = await fetch(API_URL + '/api/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-Key': API_KEY
-    },
-    body: JSON.stringify({
-      message,
-      style: options.style || 'professional',
-      image_search: options.images || 'auto'
-    })
-  });
-  return await response.json();
-}
-
-// Utilisation
-const result = await chat('Montre-moi des images de Paris');
-console.log(result.data.message);`,
-      python: `
-import requests
-
-API_KEY = 'mcp_v5_YOUR_KEY'
-API_URL = '${process.env.FRONTEND_URL || 'http://localhost:10000'}'
-
-def chat(message, style='professional', image_search='auto'):
-    response = requests.post(
-        f'{API_URL}/api/chat',
-        headers={
-            'Content-Type': 'application/json',
-            'X-API-Key': API_KEY
-        },
-        json={
-            'message': message,
-            'style': style,
-            'image_search': image_search
-        }
-    )
-    return response.json()
-
-# Utilisation
-result = chat('Montre-moi des images de Paris')
-print(result['data']['message'])`,
-      curl: `curl -X POST ${process.env.FRONTEND_URL || 'http://localhost:10000'}/api/chat \\\\
-  -H "Content-Type: application/json" \\\\
-  -H "X-API-Key: mcp_v5_YOUR_KEY" \\\\
-  -d '{"message":"Bonjour !","style":"professional","image_search":"auto"}'`
     },
     plans: {
       free: { calls: '1 000/mois', price: 'Gratuit', keys: 1, images: '50/mois' },
@@ -281,8 +177,7 @@ app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Route non trouvée',
     message: `La route ${req.originalUrl} n'existe pas.`,
-    docs: '/api/docs',
-    tip: 'Consultez /api/docs pour voir tous les endpoints disponibles.'
+    docs: '/api/docs'
   });
 });
 
@@ -293,8 +188,7 @@ app.use((error, req, res, next) => {
   console.error('❌ Erreur serveur:', error);
   res.status(500).json({
     error: 'Erreur interne du serveur',
-    message: process.env.NODE_ENV === 'development' ? error.message : 'Une erreur est survenue',
-    timestamp: new Date().toISOString()
+    message: process.env.NODE_ENV === 'development' ? error.message : 'Une erreur est survenue'
   });
 });
 
@@ -312,17 +206,19 @@ async function start() {
     console.warn('⚠️ Base de données non disponible - mode dégradé');
   }
 
+  // Initialiser le bot Telegram
   if (process.env.TELEGRAM_BOT_TOKEN) {
     try {
       const { initTelegramBot } = require('./services/telegram-service');
       await initTelegramBot(app, pool);
       console.log('✅ Bot Telegram initialisé');
     } catch (e) {
-      console.warn('⚠️ Bot Telegram non configuré');
+      console.warn('⚠️ Bot Telegram non configuré:', e.message);
     }
   }
 
-  app.listen(PORT, () => {
+  // Démarrer le serveur Express (UN SEUL SERVEUR)
+  const server = app.listen(PORT, () => {
     console.log(`\n🌟 Serveur démarré sur le port ${PORT}`);
     console.log(`📡 API: http://localhost:${PORT}`);
     console.log(`🏠 Accueil: http://localhost:${PORT}/`);
@@ -330,6 +226,38 @@ async function start() {
     console.log(`💚 Santé: http://localhost:${PORT}/api/health`);
     console.log(`🖼️  Images: http://localhost:${PORT}/api/images/search?q=`);
     console.log(`\n✨ Prêt à recevoir des requêtes !\n`);
+  });
+
+  // Gérer l'erreur de port déjà utilisé
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`\n❌ ERREUR: Le port ${PORT} est déjà utilisé !`);
+      console.error('   → Cela peut arriver si le processus précédent ne s\'est pas arrêté.');
+      console.error('   → Redémarrage automatique...\n');
+      process.exit(1);
+    } else {
+      console.error('❌ Erreur serveur:', error);
+      throw error;
+    }
+  });
+
+  // Gestion propre de l'arrêt
+  process.on('SIGTERM', () => {
+    console.log('\n🛑 Arrêt du serveur...');
+    server.close(() => {
+      console.log('✅ Serveur arrêté');
+      pool.end();
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGINT', () => {
+    console.log('\n🛑 Interruption...');
+    server.close(() => {
+      console.log('✅ Serveur arrêté');
+      pool.end();
+      process.exit(0);
+    });
   });
 }
 
