@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+  <title>Mini ChatGPT V5 — 20 IA</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <span class="logo-icon">🧠</span>
+          <span class="logo-text">Mini ChatGPT</span>
+          <span class="version-badge">V5</span>
+        </div>
+        <button class="new-chat-btn" onclick="createNewChat()">
+          <span class="btn-icon">+</span>
+          <span>Nouvelle conversation</span>
+        </button>
+      </div>
+      <div class="sidebar-chats" id="sidebarChats"></div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" onclick="showSettings()">
+          <div class="user-avatar" id="userAvatar">👤</div>
+          <div class="user-info">
+            <span id="userNameDisplay">Utilisateur</span>
+            <span class="plan-badge">Gratuit</span>
+          </div>
+        </div>
+        <div class="sidebar-actions">
+          <button class="icon-btn" onclick="showSettings()" title="Paramètres">⚙️</button>
+          <button class="icon-btn" onclick="exportData()" title="Exporter">📤</button>
+          <button class="icon-btn" onclick="showPipeline()" title="Pipeline IA">🔬</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <header class="header">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="header-info">
+          <span class="header-title">Mini ChatGPT V5</span>
+          <span class="header-subtitle">20 IA · Recherche Images · Professionnel</span>
+        </div>
+        <div class="header-actions">
+          <button class="action-btn" onclick="document.getElementById('pdfInput').click()" title="PDF">📄</button>
+          <button class="action-btn" onclick="searchWeb()" title="Recherche">🌐</button>
+          <button class="action-btn" onclick="searchImages()" title="Images">🖼️</button>
+          <button class="action-btn" onclick="showPipeline()" title="Debug">🔬</button>
+          <input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="importPDF(event)">
+        </div>
+      </header>
+
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+          <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-content">
+              <div class="welcome-logo">🧠</div>
+              <h1>Mini ChatGPT <span class="version-text">V5.0</span></h1>
+              <p class="welcome-subtitle">Assistant IA avec 20 couches d'intelligence</p>
+              <p class="welcome-description">Recherche texte + images · Paragraphes professionnels · Analyse visuelle</p>
+              <div class="capabilities">
+                <div class="capability"><span>📝</span> Paragraphes structurés</div>
+                <div class="capability"><span>🖼️</span> Recherche d'images</div>
+                <div class="capability"><span>🔍</span> Analyse approfondie</div>
+                <div class="capability"><span>🌐</span> Web intelligent</div>
+              </div>
+              <div class="suggestions">
+                <div class="suggestion" onclick="quickAsk('Montre-moi des images de la Tour Eiffel')">
+                  <span class="suggestion-icon">🗼</span>
+                  <span>Montre-moi des images de la Tour Eiffel</span>
+                </div>
+                <div class="suggestion" onclick="quickAsk('Explique-moi la photosynthèse avec des illustrations')">
+                  <span class="suggestion-icon">🌿</span>
+                  <span>Explique-moi la photosynthèse avec des illustrations</span>
+                </div>
+                <div class="suggestion" onclick="quickAsk('À quoi ressemble la Grande Muraille de Chine ?')">
+                  <span class="suggestion-icon">🏯</span>
+                  <span>À quoi ressemble la Grande Muraille de Chine ?</span>
+                </div>
+                <div class="suggestion" onclick="quickAsk('Analyse les avantages de l\'énergie solaire')">
+                  <span class="suggestion-icon">☀️</span>
+                  <span>Analyse les avantages de l'énergie solaire</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-container">
+        <div class="input-wrapper">
+          <textarea id="userInput" placeholder="Pose ta question ou demande des images..." rows="1"
+            onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+          <div class="input-actions">
+            <button class="send-btn" onclick="sendMessage()" id="sendBtn">➤</button>
+          </div>
+        </div>
+        <div class="input-footer">
+          <span>Mini ChatGPT V5 · 20 IA · Recherche images</span>
+          <span>Maj+Entrée pour nouvelle ligne</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Pipeline -->
+  <div class="modal" id="pipelineModal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>🔬 Pipeline 20 IA</h2>
+        <button class="modal-close" onclick="closePipeline()">✕</button>
+      </div>
+      <div class="pipeline-container" id="pipelineContainer"></div>
+    </div>
+  </div>
+
+  <!-- Modal Paramètres -->
+  <div class="modal" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙️ Paramètres</h2>
+        <button class="modal-close" onclick="closeSettings()">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-group">
+          <label>Ton prénom</label>
+          <input type="text" id="settingName" placeholder="Pour que l'IA se souvienne de toi">
+        </div>
+        <div class="setting-group">
+          <label>Style de réponse</label>
+          <select id="settingStyle">
+            <option value="professional">Professionnel</option>
+            <option value="academic">Académique</option>
+            <option value="casual">Décontracté</option>
+            <option value="technical">Technique</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label>Activer les images</label>
+          <select id="settingImages">
+            <option value="auto">Automatique</option>
+            <option value="always">Toujours</option>
+            <option value="never">Jamais</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label>Clé API</label>
+          <button class="btn-secondary" onclick="generateApiKey()">Générer une clé API</button>
+          <div id="apiKeyDisplay" style="display:none;margin-top:10px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Image -->
+  <div class="modal" id="imageModal">
+    <div class="modal-content modal-image">
+      <div class="modal-header">
+        <h2 id="imageModalTitle">Image</h2>
+        <button class="modal-close" onclick="closeImageModal()">✕</button>
+      </div>
+      <div class="image-full-container">
+        <img id="imageFull" src="" alt="Image plein écran">
+        <div class="image-info" id="imageInfo"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="data/storage.js"></script>
+  <script src="data/memory.js"></script>
+  <script src="data/web-search.js"></script>
+  <script src="ai/ia0.js"></script>
+  <script src="ai/ia1.js"></script>
+  <script src="ai/ia2.js"></script>
+  <script src="ai/ia3.js"></script>
+  <script src="ai/ia4.js"></script>
+  <script src="ai/ia5.js"></script>
+  <script src="ai/ia6.js"></script>
+  <script src="ai/ia7.js"></script>
+  <script src="ai/ia8.js"></script>
+  <script src="ai/ia9.js"></script>
+  <script src="ai/ia10.js"></script>
+  <script src="ai/ia11.js"></script>
+  <script src="ai/ia12.js"></script>
+  <script src="ai/ia13.js"></script>
+  <script src="ai/ia14.js"></script>
+  <script src="ai/ia15.js"></script>
+  <script src="ai/ia16.js"></script>
+  <script src="ai/ia17.js"></script>
+  <script src="ai/ia18.js"></script>
+  <script src="ai/ia19.js"></script>
+  <script src="ai/orchestrator.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+                                                                                    </html>
