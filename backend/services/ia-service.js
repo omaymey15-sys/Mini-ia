@@ -1,94 +1,131 @@
+const path = require('path');
+
+// Importer les vrais modules d'IA (depuis la racine)
+const IA0 = require(path.join(__dirname, '..', '..', 'ai', 'ia0.js'));
+const IA1 = require(path.join(__dirname, '..', '..', 'ai', 'ia1.js'));
+const IA2 = require(path.join(__dirname, '..', '..', 'ai', 'ia2.js'));
+const IA3 = require(path.join(__dirname, '..', '..', 'ai', 'ia3.js'));
+const IA4 = require(path.join(__dirname, '..', '..', 'ai', 'ia4.js'));
+const IA5 = require(path.join(__dirname, '..', '..', 'ai', 'ia5.js'));
+const IA6 = require(path.join(__dirname, '..', '..', 'ai', 'ia6.js'));
+const IA7 = require(path.join(__dirname, '..', '..', 'ai', 'ia7.js'));
+const IA8 = require(path.join(__dirname, '..', '..', 'ai', 'ia8.js'));
+const IA9 = require(path.join(__dirname, '..', '..', 'ai', 'ia9.js'));
+const IA10 = require(path.join(__dirname, '..', '..', 'ai', 'ia10.js'));
+const IA11 = require(path.join(__dirname, '..', '..', 'ai', 'ia11.js'));
+const IA12 = require(path.join(__dirname, '..', '..', 'ai', 'ia12.js'));
+const IA13 = require(path.join(__dirname, '..', '..', 'ai', 'ia13.js'));
+const IA14 = require(path.join(__dirname, '..', '..', 'ai', 'ia14.js'));
+const IA15 = require(path.join(__dirname, '..', '..', 'ai', 'ia15.js'));
+const IA16 = require(path.join(__dirname, '..', '..', 'ai', 'ia16.js'));
+const IA17 = require(path.join(__dirname, '..', '..', 'ai', 'ia17.js'));
+const IA18 = require(path.join(__dirname, '..', '..', 'ai', 'ia18.js'));
+const IA19 = require(path.join(__dirname, '..', '..', 'ai', 'ia19.js'));
+
+// Importer les données
+const Storage = require(path.join(__dirname, '..', '..', 'data', 'storage.js'));
+const Memory = require(path.join(__dirname, '..', '..', 'data', 'memory.js'));
+const WebSearch = require(path.join(__dirname, '..', '..', 'data', 'web-search.js'));
+
+// Importer l'orchestrateur
+const Orchestrator = require(path.join(__dirname, '..', '..', 'ai', 'orchestrator.js'));
+
 class IAService {
   constructor(pool) {
     this.pool = pool;
+    this.orchestrator = null;
+    this.memory = null;
+    this.initialized = false;
+  }
+
+  async init() {
+    if (this.initialized) return;
+    
+    try {
+      // Créer la mémoire
+      this.memory = new Memory();
+      
+      // Créer l'orchestrateur avec les 20 IA
+      this.orchestrator = new Orchestrator(this.memory);
+      
+      this.initialized = true;
+      console.log('✅ 20 IA connectées au backend !');
+    } catch (error) {
+      console.error('❌ Erreur initialisation 20 IA:', error.message);
+      throw error;
+    }
   }
 
   async processMessage(message, sessionId, platform, options = {}) {
-    const analysis = this.analyzeText(message);
-    let searchPerformed = false;
-    let imagesFound = 0;
-    let searchResult = null;
-
-    if (this.needsWebSearch(message, analysis.intent)) {
-      try {
-        searchResult = await this.searchWeb(message);
-        searchPerformed = true;
-      } catch (e) {}
+    // Initialiser si pas encore fait
+    if (!this.initialized) {
+      await this.init();
     }
 
-    let response = searchResult
-      ? this.formatSearchResponse(message, searchResult)
-      : this.generateResponse(message, analysis);
+    console.log(`🧠 20 IA traitent: "${message.substring(0, 80)}"`);
 
-    const processingTime = Math.floor(Math.random() * 500) + 200;
-    await this.saveToDatabase(message, response, analysis, searchPerformed, imagesFound, processingTime, platform);
+    try {
+      // Utiliser l'orchestrateur avec les 20 IA
+      const result = await this.orchestrator.processMessage(message, options);
 
-    return {
-      finalResponse: response,
-      analysis,
-      searchPerformed,
-      imagesFound,
-      processingTime
-    };
+      return {
+        finalResponse: result.response,
+        analysis: {
+          intent: result.stats?.intent || 'conversation',
+          confidence: result.stats?.confidence || 0.8,
+          sentiment: 'neutre'
+        },
+        searchPerformed: result.stats?.searchPerformed || false,
+        imagesFound: result.metadata?.imageCount || 0,
+        processingTime: result.stats?.processingTime || 500,
+        rewritten: null
+      };
+    } catch (error) {
+      console.error('❌ Erreur 20 IA:', error.message);
+      
+      // Fallback : réponse simple
+      return {
+        finalResponse: this.fallbackResponse(message),
+        analysis: { intent: 'conversation', confidence: 0.5 },
+        searchPerformed: false,
+        imagesFound: 0,
+        processingTime: 100
+      };
+    }
   }
 
-  analyzeText(text) {
+  fallbackResponse(text) {
     const lower = text.toLowerCase().trim();
-    let intent = 'conversation';
-    let confidence = 0.5;
-
-    const intents = {
-      salutation: { keywords: ['bonjour', 'salut', 'hello', 'coucou', 'bonsoir'], priority: 10 },
-      image_request: { keywords: ['montre', 'affiche', 'image', 'photo', 'illustration', 'voir'], priority: 10 },
-      question: { keywords: ['pourquoi', 'comment', 'quand', 'où', 'qui', 'quoi', '?'], priority: 7 },
-      calcul: { keywords: ['calcule', 'calcul', 'combien'], priority: 8 },
-      explication: { keywords: ['explique', 'définition', 'c\'est quoi'], priority: 9 }
-    };
-
-    let bestScore = 0;
-    for (let [name, config] of Object.entries(intents)) {
-      let score = 0;
-      config.keywords.forEach(k => { if (lower.includes(k)) score += config.priority; });
-      if (score > bestScore) { bestScore = score; intent = name; confidence = Math.min(score / 30, 1); }
+    
+    if (/bonjour|salut|hello|coucou/i.test(lower)) {
+      return 'Bonjour ! 👋 Comment puis-je t\'aider ?';
     }
-
-    return { intent, confidence, sentiment: 'neutre', entities: {}, language: 'fr' };
+    if (/qui es-tu/i.test(lower)) {
+      return 'Je suis Mini ChatGPT V5 avec 20 IA ! 🧠';
+    }
+    if (/merci/i.test(lower)) {
+      return 'Avec plaisir ! 🙏';
+    }
+    
+    const mathMatch = text.match(/(\d+)\s*([+\-*\/])\s*(\d+)/);
+    if (mathMatch) {
+      const a = parseFloat(mathMatch[1]);
+      const op = mathMatch[2];
+      const b = parseFloat(mathMatch[3]);
+      let result;
+      switch (op) { case '+': result = a + b; break; case '-': result = a - b; break; case '*': result = a * b; break; case '/': result = b !== 0 ? a / b : 'Infini'; break; }
+      return `🧮 ${a} ${op} ${b} = ${result}`;
+    }
+    
+    if (/heure/i.test(lower)) {
+      return `⏰ ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    return `« ${text} » — Les 20 IA ont rencontré un petit souci. Peux-tu reformuler ? 😊`;
   }
 
-  needsWebSearch(text, intent) {
-    if (intent === 'question' || intent === 'explication') return true;
-    return /qu'est-ce que|c'est quoi|explique|pourquoi|comment fonctionne/i.test(text) || text.length > 120;
-  }
-
-  async searchWeb(query) {
-    try {
-      const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&language=fr-fr`);
-      const data = await res.json();
-      if (data.AbstractText) return { content: data.AbstractText, source: 'DuckDuckGo' };
-      return null;
-    } catch (e) { return null; }
-  }
-
-  formatSearchResponse(query, result) {
-    return `🌐 **Recherche sur « ${query} » :**\n\n${result.content}\n\n📎 *Source : ${result.source}*\n\nSouhaites-tu approfondir ? 😊`;
-  }
-
-  generateResponse(text, analysis) {
-    const fallbacks = [
-      `« ${text} » — c'est intéressant ! Peux-tu m'en dire davantage ? ✨`,
-      `J'aimerais en savoir plus. Développe, je t'écoute ! 🎧`
-    ];
-    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
-  }
-
-  async saveToDatabase(question, answer, analysis, searchPerformed, imagesFound, time, platform) {
-    try {
-      await this.pool.query(
-        `INSERT INTO qa_pairs (question, answer, intent, source, search_performed, images_found, processing_time)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [question, answer, analysis.intent, platform, searchPerformed, imagesFound, time]
-      );
-    } catch (e) {}
+  async globalLearning() {
+    return { total_qa: 0, top_intents: [], suggestions: [] };
   }
 }
 
