@@ -1,6 +1,6 @@
 // === CONFIGURATION ===
-const API_BASE = 'https://mini-chatgpt-api.onrender.com/api';
-const USE_SERVER = false;
+const API_BASE = 'https://mini-chatgpt-api-v5.onrender.com/api';
+const USE_SERVER = true;
 
 // === INITIALISATION ===
 const memory = new Memory();
